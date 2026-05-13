@@ -714,24 +714,37 @@ footer::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;back
 </footer>
 
 <script>
-/* ═══════════════ INTRO ═══════════════ */
-(function(){
-  // Autoplay music when intro starts
+/* ═══════════════ AUDIO ═══════════════ */
+let audioPlaying = false;
+
+function startAudio(){
   const audio = document.getElementById('bg-audio');
   const wave  = document.getElementById('mwave');
-  if(audio){
-    audio.volume = 0.35;
-    const playPromise = audio.play();
-    if(playPromise !== undefined){
-      playPromise.then(()=>{
-        if(wave) wave.classList.remove('paused');
-        audioPlaying = true;
-      }).catch(()=>{
-        // Autoplay blocked — will retry on skipIntro (user interaction)
-      });
-    }
-  }
+  if(!audio || audioPlaying) return;
+  audio.volume = 0.35;
+  audio.play().then(()=>{
+    audioPlaying = true;
+    if(wave) wave.classList.remove('paused');
+  }).catch(()=>{});
+}
 
+function toggleAudio(){
+  const audio = document.getElementById('bg-audio');
+  const wave  = document.getElementById('mwave');
+  if(!audio) return;
+  if(audioPlaying){
+    audio.pause();
+    if(wave) wave.classList.add('paused');
+    audioPlaying = false;
+  } else {
+    startAudio();
+  }
+}
+</script>
+
+<script>
+/* ═══════════════ INTRO ═══════════════ */
+(function(){
   // Create bubbles
   const bb = document.getElementById('intro-bubbles');
   for(let i=0;i<18;i++){
@@ -741,6 +754,20 @@ footer::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;back
     b.style.cssText=`width:${s}px;height:${s}px;left:${Math.random()*100}%;bottom:-${s}px;animation-duration:${4+Math.random()*8}s;animation-delay:${Math.random()*4}s;`;
     bb.appendChild(b);
   }
+
+  // Start audio on ANY first interaction with the intro (tap/click/key)
+  // This satisfies the browser's user-gesture requirement
+  const introEl = document.getElementById('intro');
+  function onFirstGesture(){
+    startAudio();
+    introEl.removeEventListener('pointerdown', onFirstGesture);
+    introEl.removeEventListener('keydown',     onFirstGesture);
+  }
+  if(introEl){
+    introEl.addEventListener('pointerdown', onFirstGesture, {once:true});
+    introEl.addEventListener('keydown',     onFirstGesture, {once:true});
+  }
+
   // Auto-advance after ~3.8s
   setTimeout(()=>{ if(document.getElementById('intro')) skipIntro(); }, 3800);
 })();
@@ -752,36 +779,9 @@ function skipIntro(){
   intro.style.opacity='0';
   intro.style.pointerEvents='none';
   setTimeout(()=>intro.style.display='none', 900);
-  // Start or resume audio on user interaction (fallback if autoplay was blocked)
-  const audio = document.getElementById('bg-audio');
-  const wave  = document.getElementById('mwave');
-  if(audio && !audioPlaying){
-    audio.volume = 0.35;
-    audio.play().then(()=>{
-      if(wave) wave.classList.remove('paused');
-      audioPlaying = true;
-    }).catch(()=>{});
-  }
-}
-</script>
-
-<script>
-/* ═══════════════ AUDIO ═══════════════ */
-let audioPlaying = false;
-function toggleAudio(){
-  const audio = document.getElementById('bg-audio');
-  const wave = document.getElementById('mwave');
-  if(!audio) return;
-  if(audioPlaying){
-    audio.pause();
-    wave.classList.add('paused');
-    audioPlaying=false;
-  } else {
-    audio.volume=0.35;
-    audio.play().catch(()=>{});
-    wave.classList.remove('paused');
-    audioPlaying=true;
-  }
+  // Start audio — works here because skipIntro is called from a user gesture
+  // (clicking "Enter ›") or from the auto-timer after the page has loaded
+  startAudio();
 }
 </script>
 
