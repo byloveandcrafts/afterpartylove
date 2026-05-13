@@ -391,7 +391,7 @@ footer::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;back
 
 <!-- ═══════════════ AUDIO ═══════════════ -->
 <audio id="bg-audio" loop>
-  <source src="https://github.com/user-attachments/files/27661917/LMFAO.-.Shots.lyrics.mp3" type="audio/mpeg">
+  <source src="music.mp3" type="audio/mpeg">
 </audio>
 <div id="audio-bar" onclick="toggleAudio()">
   <div class="mwave" id="mwave">
@@ -654,7 +654,7 @@ footer::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;back
 
 <!-- ═══════════════ HASHTAG ═══════════════ -->
 <section id="hashtag">
-  <canvas class="hashtag-canvas" id="hashtag-canvas"></canvas>
+  <canvas class="hashtag-canvas" id="hashtag-canvas" style="width:100%;height:100%;"></canvas>
   <div class="container" style="position:relative;z-index:2;">
     <div class="gold-divider reveal" style="margin-bottom:32px;"><span>✦</span></div>
     <div class="hash-text reveal">
@@ -716,6 +716,22 @@ footer::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;back
 <script>
 /* ═══════════════ INTRO ═══════════════ */
 (function(){
+  // Autoplay music when intro starts
+  const audio = document.getElementById('bg-audio');
+  const wave  = document.getElementById('mwave');
+  if(audio){
+    audio.volume = 0.35;
+    const playPromise = audio.play();
+    if(playPromise !== undefined){
+      playPromise.then(()=>{
+        if(wave) wave.classList.remove('paused');
+        audioPlaying = true;
+      }).catch(()=>{
+        // Autoplay blocked — will retry on skipIntro (user interaction)
+      });
+    }
+  }
+
   // Create bubbles
   const bb = document.getElementById('intro-bubbles');
   for(let i=0;i<18;i++){
@@ -736,9 +752,16 @@ function skipIntro(){
   intro.style.opacity='0';
   intro.style.pointerEvents='none';
   setTimeout(()=>intro.style.display='none', 900);
-  // Try autoplay
+  // Start or resume audio on user interaction (fallback if autoplay was blocked)
   const audio = document.getElementById('bg-audio');
-  if(audio){ audio.volume=0.35; audio.play().catch(()=>{}); }
+  const wave  = document.getElementById('mwave');
+  if(audio && !audioPlaying){
+    audio.volume = 0.35;
+    audio.play().then(()=>{
+      if(wave) wave.classList.remove('paused');
+      audioPlaying = true;
+    }).catch(()=>{});
+  }
 }
 </script>
 
@@ -859,7 +882,7 @@ function toggleAudio(){
   function resize(){W=canvas.offsetWidth;H=canvas.offsetHeight;canvas.width=W;canvas.height=H;}
   resize(); window.addEventListener('resize',resize);
   const pts = Array.from({length:50},()=>({
-    x:Math.random()*1200,y:Math.random()*500,
+    x:Math.random()*W,y:Math.random()*H,
     vy:0.4+Math.random()*1.2,vx:(Math.random()-0.5)*0.4,
     s:1+Math.random()*3,ph:Math.random()*Math.PI*2,pspd:0.015+Math.random()*0.03,
     type:Math.random()>0.5?'d':'c'
